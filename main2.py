@@ -1,8 +1,5 @@
 import requests
-from bs4 import BeautifulSoup
-import csv
-import zipfile
-import os
+import sqlite3
 
 
 def get_json(url):
@@ -18,8 +15,24 @@ def write_to_file(dicts):
         f.write("===============================================\n")
 
 
-def write_to_db():
-    pass
+def write_to_db(dict,base):
+    base.execute("""
+        INSERT INTO zakupki
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+    """,(
+            dict["number"],
+            dict["fz"],
+            dict["url"],
+            dict["dateZakupkaStart"],
+            dict["dateZakupkaEnd"],
+            dict["zajavkaPrice"],
+            dict["zajavkaHavePrice"],
+            dict["contractPrice"],
+            dict["companyName"],
+            dict["companyInn"],
+            dict["companyPlace"]
+        )
+    )
 
 
 def show_to_console(dicts):
@@ -30,6 +43,28 @@ def show_to_console(dicts):
 
 
 def main():
+    conn = sqlite3.connect("my_base.db")  # или :memory: чтобы сохранить в RAM
+    cursor = conn.cursor()
+    # cursor.execute("""
+    #   CREATE TABLE zakupki(
+    #     number INTEGER,
+    #     fz INTEGER,
+    #     url VARCHAR(200),
+    #     dateZakupkaStart VARCHAR(50),
+    #     dateZakupkaEnd VARCHAR(50),
+    #     zajavkaPrice INTEGER,
+    #     zajavkaHavePrice INTEGER,
+    #     contractPrice INTEGER,
+    #     companyName VARCHAR(400),
+    #     companyInn INTEGER,
+    #     companyPlace VARCHAR(200)
+    #   )
+    # """)
+    # print(cursor.fetchall())
+
+
+
+
     atr = {
         'number': "Номер",
         'fz': "ФЗ",
@@ -58,8 +93,13 @@ def main():
                 dicts[str(atr[o])] = str(j)
             show_to_console(dicts)
             write_to_file(dicts)
+            write_to_db(js,cursor)
             dicts = {}
+            conn.commit()
 
+    if input("Отобразить закупки из базы данных? (да/нет): ") == "да":
+        for row in cursor.execute("SELECT * FROM zakupki;"):
+            print(row)
 
 if __name__ == '__main__':
     main()
